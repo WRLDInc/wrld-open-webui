@@ -1,3 +1,6 @@
+# Note: For Coolify deployment, use docker-compose.coolify.yaml instead
+# This file is the standard Docker Compose configuration
+
 services:
   ollama:
     volumes:

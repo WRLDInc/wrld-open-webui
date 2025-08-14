@@ -1,0 +1,122 @@
+services:
+  ollama:
+    image: ollama/ollama:${OLLAMA_DOCKER_TAG:-latest}
+    container_name: ollama
+    volumes:
+      - ollama:/root/.ollama
+    pull_policy: always
+    tty: true
+    restart: unless-stopped
+    networks:
+      - webui-network
+    labels:
+      # Coolify labels for service management
+      - "coolify.managed=true"
+      - "coolify.service=ollama"
+      - "coolify.app=open-webui"
+
+  open-webui:
+    build:
+      context: .
+      args:
+        OLLAMA_BASE_URL: '/ollama'
+      dockerfile: Dockerfile
+    image: ghcr.io/open-webui/open-webui:${WEBUI_DOCKER_TAG:-main}
+    container_name: open-webui
+    volumes:
+      # Persistent data storage
+      - open-webui-data:/app/backend/data
+      # Additional volumes for models and cache
+      - open-webui-cache:/app/backend/data/cache
+      - open-webui-models:/app/backend/data/models
+    depends_on:
+      - ollama
+    ports:
+      # Standard port mapping (external:internal)
+      - "${OPEN_WEBUI_PORT:-3000}:8080"
+    environment:
+      # Ollama connection
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:-}
+      
+      # OpenAI API configuration (optional)
+      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      
+      # Security and CORS settings
+      - CORS_ALLOW_ORIGIN=${CORS_ALLOW_ORIGIN:-*}
+      - FORWARDED_ALLOW_IPS=${FORWARDED_ALLOW_IPS:-*}
+      
+      # Telemetry and tracking
+      - DO_NOT_TRACK=true
+      - SCARF_NO_ANALYTICS=true
+      - ANONYMIZED_TELEMETRY=false
+      
+      # Application settings
+      - ENV=prod
+      - PORT=8080
+      
+      # Model settings
+      - WHISPER_MODEL=${WHISPER_MODEL:-base}
+      - RAG_EMBEDDING_MODEL=${RAG_EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
+      
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: unless-stopped
+    networks:
+      - webui-network
+    labels:
+      # Coolify labels for service management
+      - "coolify.managed=true"
+      - "coolify.service=open-webui"
+      - "coolify.app=open-webui"
+      
+      # Coolify proxy configuration
+      - "coolify.proxy=true"
+      - "coolify.proxy.port=8080"
+      - "coolify.proxy.type=http"
+      
+      # Health check configuration for Coolify
+      - "coolify.healthcheck.path=/health"
+      - "coolify.healthcheck.interval=30"
+      - "coolify.healthcheck.timeout=10"
+      - "coolify.healthcheck.retries=3"
+      
+      # Resource limits (optional, adjust as needed)
+      - "coolify.resources.limits.memory=2G"
+      - "coolify.resources.limits.cpu=2"
+      
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  webui-network:
+    driver: bridge
+    labels:
+      - "coolify.managed=true"
+
+volumes:
+  ollama:
+    driver: local
+    labels:
+      - "coolify.managed=true"
+      - "coolify.volume.type=persistent"
+  open-webui-data:
+    driver: local
+    labels:
+      - "coolify.managed=true"
+      - "coolify.volume.type=persistent"
+  open-webui-cache:
+    driver: local
+    labels:
+      - "coolify.managed=true"
+      - "coolify.volume.type=persistent"
+  open-webui-models:
+    driver: local
+    labels:
+      - "coolify.managed=true"
+      - "coolify.volume.type=persistent"
