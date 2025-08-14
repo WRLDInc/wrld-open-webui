@@ -105,18 +105,30 @@ volumes:
     labels:
       - "coolify.managed=true"
       - "coolify.volume.type=persistent"
+      - "coolify.volume.backup=true"
+      - "coolify.volume.retention=7d"
+      - "coolify.volume.description=Ollama models and configuration"
   open-webui-data:
     driver: local
     labels:
       - "coolify.managed=true"
       - "coolify.volume.type=persistent"
+      - "coolify.volume.backup=true"
+      - "coolify.volume.retention=30d"
+      - "coolify.volume.critical=true"
+      - "coolify.volume.description=Primary application data and database"
   open-webui-cache:
     driver: local
     labels:
       - "coolify.managed=true"
       - "coolify.volume.type=persistent"
+      - "coolify.volume.backup=false"
+      - "coolify.volume.description=Temporary cache files (can be regenerated)"
   open-webui-models:
     driver: local
     labels:
       - "coolify.managed=true"
       - "coolify.volume.type=persistent"
+      - "coolify.volume.backup=true"
+      - "coolify.volume.retention=14d"
+      - "coolify.volume.description=Custom models and embeddings"
