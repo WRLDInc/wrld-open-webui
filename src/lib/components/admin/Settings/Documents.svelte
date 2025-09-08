@@ -185,10 +185,9 @@
 
 		if (
 			RAGConfig.CONTENT_EXTRACTION_ENGINE === 'document_intelligence' &&
-			(RAGConfig.DOCUMENT_INTELLIGENCE_ENDPOINT === '' ||
-				RAGConfig.DOCUMENT_INTELLIGENCE_KEY === '')
+			RAGConfig.DOCUMENT_INTELLIGENCE_ENDPOINT === ''
 		) {
-			toast.error($i18n.t('Document Intelligence endpoint and key required.'));
+			toast.error($i18n.t('Document Intelligence endpoint required.'));
 			return;
 		}
 		if (
@@ -644,6 +643,7 @@
 								<SensitiveInput
 									placeholder={$i18n.t('Enter Document Intelligence Key')}
 									bind:value={RAGConfig.DOCUMENT_INTELLIGENCE_KEY}
+									required={false}
 								/>
 							</div>
 						{:else if RAGConfig.CONTENT_EXTRACTION_ENGINE === 'mistral_ocr'}
@@ -746,7 +746,7 @@
 									<select
 										class="dark:bg-gray-900 w-fit pr-8 rounded-sm px-2 p-1 text-xs bg-transparent outline-hidden text-right"
 										bind:value={embeddingEngine}
-										placeholder="Select an embedding model engine"
+										placeholder={$i18n.t('Select an embedding model engine')}
 										on:change={(e) => {
 											if (e.target.value === 'ollama') {
 												embeddingModel = '';
@@ -762,7 +762,7 @@
 										<option value="">{$i18n.t('Default (SentenceTransformers)')}</option>
 										<option value="ollama">{$i18n.t('Ollama')}</option>
 										<option value="openai">{$i18n.t('OpenAI')}</option>
-										<option value="azure_openai">Azure OpenAI</option>
+										<option value="azure_openai">{$i18n.t('Azure OpenAI')}</option>
 									</select>
 								</div>
 							</div>
@@ -811,7 +811,7 @@
 									<div class="flex gap-2">
 										<input
 											class="flex-1 w-full text-sm bg-transparent outline-hidden"
-											placeholder="Version"
+											placeholder={$i18n.t('Version')}
 											bind:value={AzureOpenAIVersion}
 											required
 										/>
@@ -947,7 +947,7 @@
 											<select
 												class="dark:bg-gray-900 w-fit pr-8 rounded-sm px-2 p-1 text-xs bg-transparent outline-hidden text-right"
 												bind:value={RAGConfig.RAG_RERANKING_ENGINE}
-												placeholder="Select a reranking model engine"
+												placeholder={$i18n.t('Select a reranking model engine')}
 												on:change={(e) => {
 													if (e.target.value === 'external') {
 														RAGConfig.RAG_RERANKING_MODEL = '';
