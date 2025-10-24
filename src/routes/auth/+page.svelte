@@ -48,7 +48,7 @@
 			await config.set(await getBackendConfig());
 
 			if (!redirectPath) {
-				redirectPath = $page.url.searchParams.get('redirectPath') || '/';
+				redirectPath = $page.url.searchParams.get('redirect') || '/';
 			}
 
 			goto(redirectPath);
@@ -521,6 +521,16 @@
 													provider: $config?.oauth?.providers?.oidc ?? 'SSO'
 												})}</span
 											>
+										</button>
+									{/if}
+									{#if $config?.oauth?.providers?.feishu}
+										<button
+											class="flex justify-center items-center bg-gray-700/5 hover:bg-gray-700/10 dark:bg-gray-100/5 dark:hover:bg-gray-100/10 dark:text-gray-300 dark:hover:text-white transition w-full rounded-full font-medium text-sm py-2.5"
+											on:click={() => {
+												window.location.href = `${WEBUI_BASE_URL}/oauth/feishu/login`;
+											}}
+										>
+											<span>{$i18n.t('Continue with {{provider}}', { provider: 'Feishu' })}</span>
 										</button>
 									{/if}
 								</div>

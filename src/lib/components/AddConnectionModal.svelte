@@ -17,6 +17,7 @@
 	import Tags from './common/Tags.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
+	import Textarea from './common/Textarea.svelte';
 
 	export let onSubmit: Function = () => {};
 	export let onDelete: Function = () => {};
@@ -41,6 +42,8 @@
 	let prefixId = '';
 	let enable = true;
 	let apiVersion = '';
+
+	let headers = '';
 
 	let tags = [];
 
@@ -69,6 +72,22 @@
 		// remove trailing slash from url
 		url = url.replace(/\/$/, '');
 
+		let _headers = null;
+
+		if (headers) {
+			try {
+				_headers = JSON.parse(headers);
+				if (typeof _headers !== 'object' || Array.isArray(_headers)) {
+					_headers = null;
+					throw new Error('Headers must be a valid JSON object');
+				}
+				headers = JSON.stringify(_headers, null, 2);
+			} catch (error) {
+				toast.error($i18n.t('Headers must be a valid JSON object'));
+				return;
+			}
+		}
+
 		const res = await verifyOpenAIConnection(
 			localStorage.token,
 			{
@@ -77,7 +96,8 @@
 				config: {
 					auth_type,
 					azure: azure,
-					api_version: apiVersion
+					api_version: apiVersion,
+					...(_headers ? { headers: _headers } : {})
 				}
 			},
 			direct
@@ -122,7 +142,7 @@
 				return;
 			}
 
-			if (!key) {
+			if (!key && !['azure_ad', 'microsoft_entra_id'].includes(auth_type)) {
 				loading = false;
 
 				toast.error($i18n.t('Key is required'));
@@ -132,6 +152,19 @@
 			if (modelIds.length === 0) {
 				loading = false;
 				toast.error($i18n.t('Deployment names are required for Azure OpenAI'));
+				return;
+			}
+		}
+
+		if (headers) {
+			try {
+				const _headers = JSON.parse(headers);
+				if (typeof _headers !== 'object' || Array.isArray(_headers)) {
+					throw new Error('Headers must be a valid JSON object');
+				}
+				headers = JSON.stringify(_headers, null, 2);
+			} catch (error) {
+				toast.error($i18n.t('Headers must be a valid JSON object'));
 				return;
 			}
 		}
@@ -149,6 +182,7 @@
 				model_ids: modelIds,
 				connection_type: connectionType,
 				auth_type,
+				headers: headers ? JSON.parse(headers) : undefined,
 				...(!ollama && azure ? { azure: true, api_version: apiVersion } : {})
 			}
 		};
@@ -172,6 +206,9 @@
 			key = connection.key;
 
 			auth_type = connection.config.auth_type ?? 'bearer';
+			headers = connection.config?.headers
+				? JSON.stringify(connection.config.headers, null, 2)
+				: '';
 
 			enable = connection.config?.enable ?? true;
 			tags = connection.config?.tags ?? [];
@@ -331,6 +368,9 @@
 												<option value="session">{$i18n.t('Session')}</option>
 												{#if !direct}
 													<option value="system_oauth">{$i18n.t('OAuth')}</option>
+													{#if azure}
+														<option value="microsoft_entra_id">{$i18n.t('Entra ID')}</option>
+													{/if}
 												{/if}
 											{/if}
 										</select>
@@ -361,11 +401,46 @@
 											>
 												{$i18n.t('Forwards system user OAuth access token to authenticate')}
 											</div>
+										{:else if ['azure_ad', 'microsoft_entra_id'].includes(auth_type)}
+											<div
+												class={`text-xs self-center translate-y-[1px] ${($settings?.highContrastMode ?? false) ? 'text-gray-800 dark:text-gray-100' : 'text-gray-500'}`}
+											>
+												{$i18n.t('Uses DefaultAzureCredential to authenticate')}
+											</div>
 										{/if}
 									</div>
 								</div>
 							</div>
 						</div>
+
+						{#if !ollama && !direct}
+							<div class="flex gap-2 mt-2">
+								<div class="flex flex-col w-full">
+									<label
+										for="headers-input"
+										class={`mb-0.5 text-xs text-gray-500
+								${($settings?.highContrastMode ?? false) ? 'text-gray-800 dark:text-gray-100' : ''}`}
+										>{$i18n.t('Headers')}</label
+									>
+
+									<div class="flex-1">
+										<Tooltip
+											content={$i18n.t(
+												'Enter additional headers in JSON format (e.g. {{\'{{"X-Custom-Header": "value"}}\'}})'
+											)}
+										>
+											<Textarea
+												className="w-full text-sm outline-hidden"
+												bind:value={headers}
+												placeholder={$i18n.t('Enter additional headers in JSON format')}
+												required={false}
+												minSize={30}
+											/>
+										</Tooltip>
+									</div>
+								</div>
+							</div>
+						{/if}
 
 						<div class="flex gap-2 mt-2">
 							<div class="flex flex-col w-full">
@@ -443,7 +518,7 @@
 							</div>
 						{/if}
 
-						<div class="flex flex-col w-full">
+						<div class="flex flex-col w-full mt-2">
 							<div class="mb-1 flex justify-between">
 								<div
 									class={`mb-0.5 text-xs text-gray-500
@@ -499,8 +574,6 @@
 							{/if}
 						</div>
 
-						<hr class=" border-gray-100 dark:border-gray-700/10 my-1.5 w-full" />
-
 						<div class="flex items-center">
 							<label class="sr-only" for="add-model-id-input">{$i18n.t('Add a model ID')}</label>
 							<input
@@ -528,9 +601,7 @@
 						</div>
 					</div>
 
-					<hr class=" border-gray-50 dark:border-gray-850 my-2.5 w-full" />
-
-					<div class="flex gap-2">
+					<div class="flex gap-2 mt-2">
 						<div class="flex flex-col w-full">
 							<div
 								class={`mb-0.5 text-xs text-gray-500
